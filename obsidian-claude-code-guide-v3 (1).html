@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Obsidian × Claude Code 完整使用指南</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+
+  :root {
+    --bg-base: #0d0d0d;
+    --bg-surface: #141414;
+    --bg-elevated: #1a1a1a;
+    --bg-card: #1f1f1f;
+    --bg-code: #0a0a0a;
+    --orange: #f97316;
+    --orange-dim: #ea580c;
+    --orange-glow: rgba(249, 115, 22, 0.12);
+    --orange-border: rgba(249, 115, 22, 0.35);
+    --text-primary: #f0f0f0;
+    --text-secondary: #999;
+    --text-muted: #555;
+    --border: #242424;
+    --green: #4ade80;
+    --blue: #60a5fa;
+    --purple: #c084fc;
+    --yellow: #fbbf24;
+    --red: #f87171;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: auto; }
+
+  body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 400;
+    line-height: 1.75;
+    font-size: 15px;
+  }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg-base); }
+  ::-webkit-scrollbar-thumb { background: var(--orange-dim); border-radius: 3px; }
+
+  /* HERO */
+  .hero {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    padding: 90px 40px 70px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -80px; left: 50%; transform: translateX(-50%);
+    width: 700px; height: 350px;
+    background: radial-gradient(ellipse, rgba(249,115,22,0.1) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: var(--orange-glow);
+    border: 1px solid var(--orange-border);
+    color: var(--orange);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    padding: 6px 18px;
+    border-radius: 2px;
+    margin-bottom: 28px;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .hero h1 {
+    font-size: clamp(36px, 6vw, 62px);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    letter-spacing: -1.5px;
+  }
+  .hero h1 span { color: var(--orange); }
+  .hero-subtitle {
+    color: var(--text-secondary);
+    font-size: 18px;
+    max-width: 600px;
+    margin: 0 auto 16px;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+  .hero-sub2 {
+    color: var(--text-muted);
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 40px;
+  }
+  .hero-tags {
+    display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+  }
+  .tag {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* NAV */
+  .nav-bar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,13,13,0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    display: flex; gap: 0; overflow-x: auto;
+  }
+  .nav-bar a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 12px;
+    padding: 14px 16px;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .nav-bar a:hover { color: var(--orange); }
+
+  /* LAYOUT */
+  .container { max-width: 960px; margin: 0 auto; padding: 0 40px; }
+
+  /* SECTIONS */
+  .section { padding: 72px 0; }
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 3px;
+    color: var(--orange); text-transform: uppercase;
+    margin-bottom: 10px; font-weight: 600;
+  }
+  .section-title {
+    font-size: clamp(24px, 3.5vw, 36px);
+    font-weight: 800; margin-bottom: 14px; letter-spacing: -0.5px;
+  }
+  .section-desc {
+    color: var(--text-secondary); margin-bottom: 44px;
+    font-size: 16px; max-width: 720px; line-height: 1.7;
+  }
+
+  /* SUBSECTION */
+  .subsection { margin: 48px 0 0; }
+  .subsection-title {
+    font-size: 18px; font-weight: 700;
+    margin-bottom: 12px; color: var(--text-primary);
+    padding-left: 14px;
+    border-left: 3px solid var(--orange);
+  }
+  .subsection p { color: var(--text-secondary); font-size: 14px; margin-bottom: 12px; line-height: 1.75; }
+  .subsection p:last-child { margin-bottom: 0; }
+
+  /* CONCEPT BOX */
+  .concept-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--orange);
+    padding: 22px 28px;
+    border-radius: 0 4px 4px 0;
+    margin: 24px 0;
+  }
+  .concept-box .label {
+    font-size: 10px; color: var(--orange);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 2.5px; font-weight: 700;
+    margin-bottom: 10px; text-transform: uppercase;
+  }
+  .concept-box p { color: var(--text-primary); font-size: 15px; line-height: 1.75; }
+
+  /* WARNING / INFO / SUCCESS BOXES */
+  .box {
+    border-radius: 4px; padding: 16px 20px;
+    margin: 20px 0; display: flex; gap: 14px; align-items: flex-start;
+  }
+  .box.info { background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); }
+  .box.warn { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); }
+  .box.success { background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2); }
+  .box.orange { background: var(--orange-glow); border: 1px solid var(--orange-border); }
+  .box-icon { font-size: 16px; margin-top: 1px; flex-shrink: 0; }
+  .box-content { flex: 1; }
+  .box-content p { font-size: 14px; color: var(--text-primary); line-height: 1.65; margin-bottom: 6px; }
+  .box-content p:last-child { margin-bottom: 0; }
+  .box-content strong { color: var(--orange); }
+  .box-title { font-size: 12px; font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; }
+  .box.info .box-title { color: var(--blue); }
+  .box.warn .box-title { color: var(--yellow); }
+  .box.success .box-title { color: var(--green); }
+  .box.orange .box-title { color: var(--orange); }
+
+  /* CODE BLOCKS */
+  .code-block { background: var(--bg-code); border: 1px solid var(--border); border-radius: 4px; margin: 20px 0; overflow: hidden; }
+  .code-header {
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 18px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .code-lang { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--orange); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .code-desc { font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+  .code-block pre { padding: 22px; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.8; color: #d4d4d4; }
+  .cm { color: #555; }
+  .ck { color: var(--orange); }
+  .cp { color: var(--blue); }
+  .cs { color: var(--green); }
+  .cv { color: var(--purple); }
+  .cy { color: var(--yellow); }
+  .cr { color: var(--red); }
+
+  /* INLINE CODE */
+  code {
+    font-family: 'JetBrains Mono', monospace; font-size: 12.5px;
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    padding: 2px 7px; border-radius: 3px; color: var(--orange);
+  }
+
+  /* CARDS */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; margin: 28px 0; }
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: 24px; transition: border-color 0.2s, transform 0.2s; }
+  .card:hover { border-color: var(--orange-border); transform: translateY(-2px); }
+  .card-icon { font-size: 26px; margin-bottom: 14px; }
+  .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+  .card p { font-size: 13px; color: var(--text-secondary); line-height: 1.65; }
+  .card ul { font-size: 13px; color: var(--text-secondary); padding-left: 18px; }
+  .card li { margin-bottom: 4px; line-height: 1.6; }
+
+  /* COMPARE */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+  @media (max-width: 640px) { .compare { grid-template-columns: 1fr; } }
+  .compare-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: 20px; }
+  .compare-box.before { border-top: 3px solid #444; }
+  .compare-box.after { border-top: 3px solid var(--orange); }
+  .compare-label { font-size: 11px; font-family: 'JetBrains Mono', monospace; letter-spacing: 2px; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; }
+  .compare-box.before .compare-label { color: #555; }
+  .compare-box.after .compare-label { color: var(--orange); }
+  .compare-box p { font-size: 13.5px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 8px; }
+  .compare-box p:last-child { margin-bottom: 0; }
+  .compare-box ul { font-size: 13px; color: var(--text-secondary); padding-left: 18px; }
+  .compare-box li { margin-bottom: 5px; line-height: 1.6; }
+
+  /* STEPS */
+  .steps { margin: 28px 0; }
+  .step { display: flex; gap: 22px; margin-bottom: 40px; position: relative; }
+  .step::before { content: ''; position: absolute; left: 15px; top: 38px; width: 1px; height: calc(100% + 16px); background: var(--border); }
+  .step:last-child::before { display: none; }
+  .step-num {
+    background: var(--bg-surface); border: 1px solid var(--orange-border);
+    color: var(--orange); font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; font-weight: 700; width: 32px; height: 32px;
+    border-radius: 2px; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px; z-index: 1; position: relative;
+  }
+  .step-content { flex: 1; }
+  .step-content h4 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+  .step-content > p { font-size: 14px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.7; }
+
+  /* SCENARIO */
+  .scenario { background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; margin: 28px 0; overflow: hidden; }
+  .scenario-header { background: var(--bg-elevated); padding: 18px 26px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 16px; }
+  .scenario-num { background: var(--orange); color: #000; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 800; width: 30px; height: 30px; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .scenario-title { font-size: 17px; font-weight: 700; }
+  .scenario-body { padding: 28px; }
+  .scenario-body > p { font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.75; }
+  .scenario-body > p strong { color: var(--text-primary); }
+
+  /* COMMAND EXPLAIN */
+  .cmd-explain { margin: 16px 0; }
+  .cmd-explain-item { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 8px; overflow: hidden; }
+  .cmd-explain-top { padding: 12px 16px; display: flex; align-items: center; gap: 14px; }
+  .cmd-explain-code { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--orange); background: var(--bg-code); padding: 4px 10px; border-radius: 3px; border: 1px solid var(--border); white-space: nowrap; }
+  .cmd-explain-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+  .cmd-explain-detail { padding: 0 16px 14px 16px; font-size: 13px; color: var(--text-muted); line-height: 1.65; border-top: 1px solid var(--border); padding-top: 10px; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; margin: 24px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { background: var(--bg-elevated); color: var(--orange); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; padding: 13px 18px; text-align: left; border-bottom: 1px solid var(--border); font-weight: 700; }
+  td { padding: 13px 18px; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: top; font-size: 14px; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  td strong { color: var(--text-primary); }
+  td code { font-size: 12px; }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+
+  /* FLOW DIAGRAM */
+  .flow { display: flex; align-items: center; gap: 0; margin: 28px 0; flex-wrap: wrap; }
+  .flow-step { background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: 14px 20px; text-align: center; flex: 1; min-width: 120px; }
+  .flow-step .fs-num { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--orange); letter-spacing: 1px; margin-bottom: 6px; }
+  .flow-step .fs-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .flow-step .fs-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+  .flow-arrow { color: var(--orange); font-size: 20px; padding: 0 8px; flex-shrink: 0; }
+
+  /* PAGE SWITCHING */
+  .page { display: none; }
+  .page.active { display: block; }
+  .nav-link.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+  /* FOOTER */
+  .footer { padding: 56px 40px; text-align: center; border-top: 1px solid var(--border); }
+  .footer p { color: var(--text-muted); font-size: 12px; font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; }
+  .footer span { color: var(--orange); }
+
+  /* UTILS */
+  strong { color: var(--text-primary); font-weight: 700; }
+  p { margin-bottom: 12px; }
+  p:last-child { margin-bottom: 0; }
+  ul, ol { padding-left: 22px; color: var(--text-secondary); font-size: 14px; }
+  li { margin-bottom: 7px; line-height: 1.7; }
+  li strong { color: var(--text-primary); }
+  .mt-16 { margin-top: 16px; }
+  .mt-24 { margin-top: 24px; }
+  .mt-32 { margin-top: 32px; }
+  .mb-0 { margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">完整使用指南 v2.0 — 深度版</div>
+  <h1>Obsidian <span>×</span> Claude Code</h1>
+  <p class="hero-subtitle">把你腦子裡的開發脈絡，變成 AI 可以永久讀取的知識庫</p>
+  <p class="hero-sub2">適合初階開發者 · 含完整指令解釋 · 每個步驟都說清楚為什麼</p>
+  <div class="hero-tags">
+    <span class="tag">初階友善</span>
+    <span class="tag">指令逐行解釋</span>
+    <span class="tag">8 大情境</span>
+    <span class="tag">完整範本</span>
+    <span class="tag">免費工具</span>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav-bar">
+  <a href="#" class="nav-link active" data-target="concept">概念</a>
+  <a href="#" class="nav-link" data-target="problem">問題</a>
+  <a href="#" class="nav-link" data-target="obsidian">Obsidian</a>
+  <a href="#" class="nav-link" data-target="setup">安裝</a>
+  <a href="#" class="nav-link" data-target="structure">結構</a>
+  <a href="#" class="nav-link" data-target="claudemd">CLAUDE.md</a>
+  <a href="#" class="nav-link" data-target="scenarios">情境</a>
+  <a href="#" class="nav-link" data-target="commands">指令表</a>
+  <a href="#" class="nav-link" data-target="advanced">進階</a>
+</nav>
+
+<div class="container">
+
+  <!-- SECTION 0: 整體概念 -->
+  <section class="section page active" id="concept">
+    <div class="section-label">00 — 先看這個</div>
+    <h2 class="section-title">這份指南在說什麼？</h2>
+    <p class="section-desc">在學任何工具之前，先搞懂你要解決的問題，以及這套組合是怎麼解決它的。</p>
+
+    <div class="flow">
+      <div class="flow-step">
+        <div class="fs-num">你的大腦</div>
+        <div class="fs-title">想法 & 決定</div>
+        <div class="fs-desc">隨時在更新，但沒地方存</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="fs-num">Obsidian Vault</div>
+        <div class="fs-title">本機知識庫</div>
+        <div class="fs-desc">.md 檔案，Claude 可以讀</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="fs-num">Claude Code</div>
+        <div class="fs-title">讀取脈絡</div>
+        <div class="fs-desc">每次啟動都知道背景</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="fs-num">結果</div>
+        <div class="fs-title">不用重複解釋</div>
+        <div class="fs-desc">直接接著上次繼續</div>
+      </div>
+    </div>
+
+    <div class="concept-box">
+      <div class="label">核心思維</div>
+      <p>Claude Code 很強，但它有一個根本限制：<strong>每次開新 session 都是空白的，完全不記得上次的對話。</strong>你的思考脈絡、做過的決定、踩過的坑，全部消失。Obsidian Vault 就是用來解決這個問題——它是 Claude 的「外部硬碟」，讓知識可以跨 session 保存。</p>
+    </div>
+  </section>
+
+  <!-- SECTION 1: 問題背景 -->
+  <section class="section page" id="problem">
+    <div class="section-label">01 — 問題背景</div>
+    <h2 class="section-title">沒有 Vault 之前，你在浪費什麼？</h2>
+    <p class="section-desc">這些問題你可能每天都在遇到，但已經習慣了，不覺得是問題。</p>
+
+    <div class="compare">
+      <div class="compare-box before">
+        <div class="compare-label">❌ 現在的狀況</div>
+        <ul>
+          <li>每次開新 session 要重新解釋「我在做什麼」</li>
+          <li>做了一個技術決定，三個月後忘記原因，又重新想一遍</li>
+          <li>多個專案同時進行，上下文容易混亂</li>
+          <li>靈感一來沒地方記，想記又懶得整理</li>
+          <li>踩過的坑沒有記錄，之後再踩一次</li>
+          <li>GitHub 有 code，但沒有「為什麼這樣寫」</li>
+        </ul>
+      </div>
+      <div class="compare-box after">
+        <div class="compare-label">✅ 有 Vault 之後</div>
+        <ul>
+          <li>叫 Claude 讀 Vault，直接知道所有背景</li>
+          <li>所有決定都有紀錄：決定了什麼、為什麼、當時的條件</li>
+          <li>每個專案獨立資料夾，切換時脈絡清晰</li>
+          <li>靈感丟進 inbox，叫 Claude 幫你整理</li>
+          <li>bugs-log.md 記住所有踩過的坑</li>
+          <li>Code + 脈絡 = 完整的專案記憶</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3 class="subsection-title">為什麼這個問題比你想的更嚴重？</h3>
+      <p>假設你做一個 SaaS 產品，從開始到 MVP 要三個月。這三個月你和 Claude Code 至少有 100 次對話。每次對話平均花 10 分鐘重新交代背景，就是 <strong>16 個小時</strong>浪費在解釋你自己已經知道的事情上。</p>
+      <p>更嚴重的是<strong>決策品質的損失</strong>：沒有決策紀錄，你會在同一個問題上反覆猶豫，因為你不記得自己當初為什麼做這個選擇。有了 Vault，你可以叫 Claude「去看我之前對這個問題的分析，幫我評估現在的狀況有沒有改變」，直接站在過去的思考基礎上繼續。</p>
+    </div>
+
+    <div class="subsection">
+      <h3 class="subsection-title">GitHub 不夠嗎？</h3>
+      <p>GitHub 很好，但它存的是<strong>結果</strong>，不是<strong>過程</strong>。</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>工具</th><th>存什麼</th><th>看得到「為什麼」嗎？</th><th>Claude 可以直接讀嗎？</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>GitHub</strong></td><td>程式碼、commit history</td><td>要翻 commit message，通常寫得很簡略</td><td>可以，但找特定脈絡很慢</td></tr>
+            <tr><td><strong>Obsidian Vault</strong></td><td>決策過程、思考脈絡、踩坑紀錄</td><td>✅ 這就是它的核心功能</td><td>✅ 直接讀資料夾</td></tr>
+            <tr><td><strong>Notion</strong></td><td>各種筆記</td><td>可以，但格式複雜</td><td>❌ 需要 API，設定麻煩</td></tr>
+            <tr><td><strong>腦子</strong></td><td>一切</td><td>記憶會消失</td><td>❌</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: OBSIDIAN 基礎 -->
+  <section class="section page" id="obsidian">
+    <div class="section-label">02 — Obsidian 基礎</div>
+    <h2 class="section-title">Obsidian 到底是什麼？</h2>
+    <p class="section-desc">很多人聽到「知識管理工具」就覺得複雜，其實 Obsidian 的本質很簡單。</p>
+
+    <div class="subsection">
+      <h3 class="subsection-title">最簡單的理解方式</h3>
+      <p>你現在電腦上有很多 <code>.md</code> 檔案，比如專案的 <code>README.md</code>、Claude Code 用的 <code>CLAUDE.md</code>。你平時用 VS Code 或任何文字編輯器打開這些檔案。</p>
+      <p><strong>Obsidian 就是一個專門用來讀寫 .md 檔案的介面，</strong>但它額外提供了幾個功能：筆記之間可以互相連結、有視覺化的連結圖、有強大的全文搜尋。就這樣。</p>
+      <p>你的資料不在 Obsidian 的伺服器，不在雲端，就在你電腦的某個資料夾裡。你關掉 Obsidian，用 VS Code 打開同一個資料夾，所有內容都還在，格式完全一樣。</p>
+    </div>
+
+    <div class="box info">
+      <span class="box-icon">ℹ️</span>
+      <div class="box-content">
+        <div class="box-title">Vault 是什麼？</div>
+        <p>「Vault」是 Obsidian 對「工作資料夾」的稱呼。你告訴 Obsidian「這個資料夾是我的 Vault」，它就會把那個資料夾裡所有的 .md 檔案當成你的筆記來管理。一個 Vault = 一個資料夾。你可以有多個 Vault，但通常一個就夠了。</p>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3 class="subsection-title">四個你會真正用到的功能</h3>
+
+      <div class="card-grid mt-16">
+        <div class="card">
+          <div class="card-icon">🔗</div>
+          <h3>雙向連結</h3>
+          <p>在任何筆記裡輸入 <code>[[其他筆記名稱]]</code>，Obsidian 就會自動建立連結。被連結的筆記也會知道「有人連結我」，這叫 backlink。</p>
+          <p style="margin-top:10px;font-size:12px;color:#666;">範例：在「會員系統決策」裡寫 <code>[[OTP 服務比較研究]]</code>，點擊就能跳到那篇。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🕸️</div>
+          <h3>Graph View（連結圖）</h3>
+          <p>按下 Ctrl+G（Mac: Cmd+G），所有筆記和它們之間的連結會以視覺化的圖形呈現。一眼就能看到哪些概念之間有關聯，哪些筆記是孤立的。</p>
+          <p style="margin-top:10px;font-size:12px;color:#666;">對於管理多個同時進行的專案特別有用。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔍</div>
+          <h3>全文搜尋</h3>
+          <p>Ctrl+Shift+F（Mac: Cmd+Shift+F），瞬間搜尋所有筆記的內容。比 grep 更快，也能搜標題、tags、內容。</p>
+          <p style="margin-top:10px;font-size:12px;color:#666;">找三個月前某個決定的理由，幾秒就找到。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">⚡</div>
+          <h3>快速切換</h3>
+          <p>Ctrl+O（Mac: Cmd+O），打幾個字母就能跳到任何一篇筆記。不用用滑鼠慢慢找。</p>
+          <p style="margin-top:10px;font-size:12px;color:#666;">整個工作流可以完全用鍵盤完成。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3 class="subsection-title">費用說明</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>項目</th><th>費用</th><th>你需要嗎？</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Obsidian 本體</strong></td><td>完全免費</td><td>✅ 這就夠了</td></tr>
+            <tr><td>Obsidian Sync</td><td>$4 USD/月</td><td>不需要，用 iCloud 或 GitHub 可以免費同步</td></tr>
+            <tr><td>Obsidian Publish</td><td>$8 USD/月</td><td>不需要（把筆記發布成公開網站）</td></tr>
+            <tr><td>Commercial License</td><td>$50 USD/次</td><td>你在公司電腦上用才需要（個人用途免費）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: 安裝設定 -->
+  <section class="section page" id="setup">
+    <div class="section-label">03 — 安裝設定</div>
+    <h2 class="section-title">從零開始的完整設定流程</h2>
+    <p class="section-desc">每個步驟都說明你在做什麼、為什麼這樣做。預計完成時間：30 分鐘。</p>
+
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>下載 Obsidian</h4>
+          <p>前往 <strong>obsidian.md</strong> 下載對應你作業系統的版本。這是免費的，不需要建立帳號。安裝完直接打開。</p>
+          <div class="box info">
+            <span class="box-icon">ℹ️</span>
+            <div class="box-content">
+              <p>第一次開啟會問你要「新建 Vault」還是「打開現有資料夾」。先選<strong>新建 Vault</strong>，繼續下一步。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>建立 Vault 資料夾結構</h4>
+          <p>打開終端機（Terminal / iTerm 或任何你習慣的終端機），執行以下指令。每行的意思都有說明。</p>
+
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <span class="code-desc">建立 Vault 基礎結構 — 逐行解釋</span>
+            </div>
+            <pre><span class="cm"># mkdir = make directory，建立資料夾</span>
+<span class="cm"># -p = 如果父資料夾不存在，一起建立；已存在也不報錯</span>
+<span class="cm"># ~ = 你的家目錄（通常是 /Users/你的名字/）</span>
+<span class="ck">mkdir</span> -p <span class="cp">~/vault</span>
+
+<span class="cm"># cd = change directory，切換到那個資料夾</span>
+<span class="ck">cd</span> <span class="cp">~/vault</span>
+
+<span class="cm"># 用一個指令同時建立多個子資料夾</span>
+<span class="cm"># {} 裡的名稱用逗號隔開，不能有空格</span>
+<span class="ck">mkdir</span> -p <span class="cp">projects inbox decisions resources daily-notes</span>
+
+<span class="cm"># ls = list，列出目前資料夾裡的所有內容</span>
+<span class="cm"># -la = 顯示詳細資訊（包含隱藏檔案）</span>
+<span class="cm"># 執行這個來確認資料夾都建好了</span>
+<span class="ck">ls</span> -la</pre>
+          </div>
+
+          <p>執行後你應該看到這幾個資料夾：</p>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">output</span><span class="code-desc">預期輸出</span></div>
+            <pre>drwxr-xr-x  decisions
+drwxr-xr-x  daily-notes
+drwxr-xr-x  inbox
+drwxr-xr-x  projects
+drwxr-xr-x  resources</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>在 Obsidian 裡開啟這個 Vault</h4>
+          <p>回到 Obsidian，選擇 <strong>Open folder as vault</strong>，導航到 <code>~/vault</code>（就是你家目錄下的 vault 資料夾），點 Open。</p>
+          <p>Obsidian 現在就能看到你剛才建的資料夾結構了。左側欄位會顯示所有子資料夾。</p>
+
+          <div class="box warn">
+            <span class="box-icon">⚠️</span>
+            <div class="box-content">
+              <div class="box-title">常見誤解</div>
+              <p>有些人會想說「那我直接把 code repo 當 Vault 不就好了？」這樣做會有問題：你的 Vault 裡會混進 node_modules、.gitignore、package.json 等非筆記檔案，搜尋和連結功能會很雜亂。<strong>建議 Vault 和 code repo 分開</strong>，保持 Vault 裡只有 .md 筆記。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>建立你的第一個專案狀態檔</h4>
+          <p>這是最重要的檔案，記錄你的專案現在在哪裡、下一步要做什麼。用以下指令建立範本：</p>
+
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <span class="code-desc">建立專案狀態檔範本</span>
+            </div>
+            <pre><span class="cm"># 先建立專案子目錄</span>
+<span class="cm"># 把 "my-project" 換成你的專案名稱</span>
+<span class="ck">mkdir</span> -p <span class="cp">~/vault/projects/my-project</span>
+
+<span class="cm"># cat > 檔案路徑 << 'EOF' 是 heredoc 語法</span>
+<span class="cm"># 讓你可以在終端機直接輸入多行內容</span>
+<span class="cm"># 直到遇到 EOF 才結束</span>
+<span class="ck">cat</span> > <span class="cp">~/vault/projects/my-project/status.md</span> << <span class="cs">'EOF'</span>
+<span class="cs"># My Project — 狀態追蹤</span>
+
+<span class="cs">最後更新：（每次工作結束更新這裡）</span>
+
+<span class="cs">## ✅ 已完成</span>
+<span class="cs">- （列出完成的功能/任務）</span>
+
+<span class="cs">## 🔄 進行中</span>
+<span class="cs">- （目前正在做的）</span>
+
+<span class="cs">## ⏳ 下一步（按優先順序）</span>
+<span class="cs">1. </span>
+<span class="cs">2. </span>
+<span class="cs">3. </span>
+
+<span class="cs">## ❓ 還未決定的問題</span>
+<span class="cs">- （需要之後再討論的）</span>
+
+<span class="cs">## ⚠️ 注意事項 & 踩過的坑</span>
+<span class="cs">- （避免重蹈覆轍的提醒）</span>
+
+<span class="cs">## 📁 相關檔案路徑</span>
+<span class="cs">- Code repo：~/（你的專案路徑）</span>
+<span class="cs">- 決策紀錄：[[decisions]]</span>
+EOF</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <h4>確認 Claude Code 可以讀取 Vault</h4>
+
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <span class="code-desc">啟動並測試</span>
+            </div>
+            <pre><span class="cm"># 切換到 vault 目錄（關鍵步驟）</span>
+<span class="ck">cd</span> <span class="cp">~/vault</span>
+
+<span class="cm"># 啟動 Claude Code</span>
+<span class="ck">claude</span>
+
+<span class="cm"># 在 Claude Code 裡輸入以下測試指令：</span>
+<span class="cm"># "請列出這個 vault 裡所有的 .md 檔案，並說明結構"</span></pre>
+          </div>
+
+          <div class="box success">
+            <span class="box-icon">✅</span>
+            <div class="box-content">
+              <div class="box-title">成功的樣子</div>
+              <p>Claude Code 應該會回答類似：「我看到你的 vault 有以下結構：projects/my-project/status.md、inbox/、decisions/ 等資料夾...」代表它可以正常讀取你的 Vault。</p>
+            </div>
+          </div>
+
+          <div class="box warn">
+            <span class="box-icon">⚠️</span>
+            <div class="box-content">
+              <div class="box-title">為什麼一定要從 vault 目錄啟動？</div>
+              <p>Claude Code 啟動時，它的「工作目錄」就是你執行 <code>claude</code> 指令的那個資料夾。從 vault 目錄啟動，它就能看到所有筆記。如果你從其他地方啟動，你就需要每次都告訴它 vault 的完整路徑，比較麻煩。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 4: 結構 -->
+  <section class="section page" id="structure">
+    <div class="section-label">04 — 資料夾設計</div>
+    <h2 class="section-title">Vault 的完整結構設計</h2>
+    <p class="section-desc">好的結構讓你記錄更快、Claude 找脈絡更準。這裡說明每個資料夾的作用和裡面應該放什麼。</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">tree</span>
+        <span class="code-desc">完整目錄結構與說明</span>
+      </div>
+      <pre><span class="cp">~/vault/</span>
+│
+├── <span class="cy">CLAUDE.md</span>                    <span class="cm"># ← 最重要，Claude 每次啟動都讀這個</span>
+│
+├── <span class="cp">projects/</span>                    <span class="cm"># 每個進行中的專案一個子資料夾</span>
+│   ├── <span class="cp">project-a/</span>
+│   │   ├── <span class="cs">status.md</span>            <span class="cm"># 現在做到哪、下一步是什麼</span>
+│   │   ├── <span class="cs">decisions.md</span>         <span class="cm"># 所有決定的紀錄（含理由）</span>
+│   │   ├── <span class="cs">architecture.md</span>      <span class="cm"># 系統設計、技術選型</span>
+│   │   └── <span class="cs">bugs-log.md</span>          <span class="cm"># 踩過的坑和解法</span>
+│   └── <span class="cp">project-b/</span>
+│       └── ...
+│
+├── <span class="cp">inbox/</span>                       <span class="cm"># 靈感暫存區，不需要整理就可以丟</span>
+│   └── <span class="cs">quick-capture.md</span>         <span class="cm"># 所有快速記錄都先進這裡</span>
+│
+├── <span class="cp">decisions/</span>                   <span class="cm"># 跨專案的重大決定（技術棧、架構等）</span>
+│   ├── <span class="cs">tech-stack.md</span>
+│   └── <span class="cs">architecture-principles.md</span>
+│
+├── <span class="cp">resources/</span>                   <span class="cm"># 學習筆記、參考資料、技術研究</span>
+│   ├── <span class="cs">supabase-tips.md</span>
+│   ├── <span class="cs">nextjs-patterns.md</span>
+│   └── <span class="cp">templates/</span>               <span class="cm"># 各種筆記的標準範本</span>
+│       ├── <span class="cs">decision-template.md</span>
+│       └── <span class="cs">bug-report-template.md</span>
+│
+└── <span class="cp">daily-notes/</span>                 <span class="cm"># 每日工作日誌（選用，但很有用）</span>
+    ├── <span class="cs">2026-03-26.md</span>
+    └── <span class="cs">2026-03-27.md</span></pre>
+    </div>
+
+    <div class="subsection">
+      <h3 class="subsection-title">每個資料夾的詳細說明</h3>
+
+      <div class="card-grid mt-16">
+        <div class="card">
+          <div class="card-icon">📁</div>
+          <h3>projects/</h3>
+          <p><strong>放什麼：</strong>每個進行中的專案，各自一個子資料夾。</p>
+          <p><strong>為什麼這樣分：</strong>讓 Claude 讀取時可以精準指定「只看這個專案的脈絡」，不會把不同專案的資訊混在一起。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📥</div>
+          <h3>inbox/</h3>
+          <p><strong>放什麼：</strong>任何還沒整理的想法、靈感、待辦。</p>
+          <p><strong>使用方式：</strong>先丟進來，不用考慮格式或放哪裡。之後叫 Claude 幫你整理到對應的位置。這樣降低記錄的摩擦力。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">⚖️</div>
+          <h3>decisions/</h3>
+          <p><strong>放什麼：</strong>跨多個專案都適用的重大決定，例如「所有專案都用 TypeScript」、「統一用 Supabase 做資料庫」。</p>
+          <p><strong>為什麼不放在 projects/ 裡：</strong>這些決定不屬於單一專案，而是你整體的技術方向。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📚</div>
+          <h3>resources/</h3>
+          <p><strong>放什麼：</strong>你學到的東西——某個函式庫的使用技巧、某個問題的解法研究、某篇文章的重點摘要。</p>
+          <p><strong>與 inbox 的差別：</strong>inbox 是未整理的暫存，resources 是整理好的知識。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3 class="subsection-title">每個專案資料夾裡的四個核心檔案</h3>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">markdown</span>
+          <span class="code-desc">status.md — 最重要的檔案，每次工作結束前更新</span>
+        </div>
+        <pre><span class="cm"># 這個檔案就是你的「進度追蹤器」</span>
+<span class="cm"># Claude 讀了它，就知道你現在做到哪</span>
+
+<span class="cs"># 專案名稱 — 狀態追蹤</span>
+
+<span class="cs">最後更新：2026-03-26</span>
+
+<span class="cs">## ✅ 已完成</span>
+<span class="cs">- 資料庫 schema 設計完成</span>
+<span class="cs">- 使用者認證（OTP）串接完成</span>
+
+<span class="cs">## ⏳ 下一步</span>
+<span class="cs">1. 建立 CSV 匯入功能（最優先）</span>
+<span class="cs">2. 前端會員列表頁面</span>
+
+<span class="cs">## ⚠️ 注意</span>
+<span class="cs">- node_modules 不要 commit（.gitignore 已設定）</span>
+<span class="cs">- 環境變數存在 .env.local，不要推到 GitHub</span></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">markdown</span>
+          <span class="code-desc">decisions.md — 記錄每一個重要決定</span>
+        </div>
+        <pre><span class="cm"># 格式：日期 + 決定 + 理由 + 重新評估條件</span>
+<span class="cm"># 有了這個，三個月後你還能理解當初為什麼這樣做</span>
+
+<span class="cs">## 2026-03-15 選擇 Supabase 而非 Firebase</span>
+
+<span class="cs">**決定：** 使用 Supabase</span>
+
+<span class="cs">**評估過的選項：**</span>
+<span class="cs">- Firebase：熟悉，但 NoSQL 對這個專案的關聯資料不適合</span>
+<span class="cs">- Supabase：PostgreSQL 基礎，有 Row Level Security，費用更低</span>
+<span class="cs">- 自建 PostgreSQL：控制性最高但維運成本太高</span>
+
+<span class="cs">**選 Supabase 的理由：**</span>
+<span class="cs">1. 關聯式資料庫符合我們的資料結構</span>
+<span class="cs">2. 內建 Auth 省去自建認證的工作</span>
+<span class="cs">3. 免費方案足夠 MVP 階段使用</span>
+
+<span class="cs">**未來重新評估的條件：**</span>
+<span class="cs">- 月活躍用戶超過 10,000 時檢視費用</span></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">markdown</span>
+          <span class="code-desc">bugs-log.md — 踩過的坑，避免下次再踩</span>
+        </div>
+        <pre><span class="cs">## 2026-03-20 Supabase RLS 政策導致查詢返回空陣列</span>
+
+<span class="cs">**症狀：** 查詢看起來正確，但永遠返回 []</span>
+
+<span class="cs">**原因：** Row Level Security 啟用後，沒有對應的 policy</span>
+<span class="cs">允許讀取，所以所有查詢都被擋掉了。</span>
+
+<span class="cs">**解法：**</span>
+<span class="cs">```sql</span>
+<span class="cs">CREATE POLICY "Allow read for authenticated users"</span>
+<span class="cs">ON your_table FOR SELECT</span>
+<span class="cs">USING (auth.uid() IS NOT NULL);</span>
+<span class="cs">```</span>
+
+<span class="cs">**下次遇到查詢返回空時，先檢查 RLS policies。**</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: CLAUDE.MD -->
+  <section class="section page" id="claudemd">
+    <div class="section-label">05 — 核心設定</div>
+    <h2 class="section-title">CLAUDE.md：你和 AI 之間的永久契約</h2>
+    <p class="section-desc">這是整個系統最重要的檔案。放在 vault 根目錄，Claude Code 每次從這個目錄啟動就會自動讀取。相當於你永久告訴 Claude「你是誰、在做什麼、有什麼規則」。</p>
+
+    <div class="subsection">
+      <h3 class="subsection-title">為什麼要有 CLAUDE.md？</h3>
+      <p>正常情況下，你每次開新 session，都要重新告訴 Claude 你的背景。有了 CLAUDE.md，這些資訊會自動載入，你不用再說。</p>
+      <p>另外，CLAUDE.md 也可以放「規則」——比如「不要刪任何檔案」、「每次做完要更新 status.md」、「回答用繁體中文」。這些規則每次 session 都自動生效。</p>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">bash</span>
+        <span class="code-desc">建立 CLAUDE.md</span>
+      </div>
+      <pre><span class="cm"># 在 vault 根目錄建立 CLAUDE.md</span>
+<span class="ck">cat</span> > <span class="cp">~/vault/CLAUDE.md</span> << <span class="cs">'EOF'</span>
+<span class="cm">（把下面的範本內容貼進去，然後根據你的情況修改）</span>
+EOF</span></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">markdown</span>
+        <span class="code-desc">CLAUDE.md 完整範本（根據你的情況修改每個 [] 的部分）</span>
+      </div>
+      <pre><span class="cv"># CLAUDE.md — [你的名字] 的開發 Vault</span>
+
+<span class="cm">---</span>
+
+<span class="cs">## 關於我</span>
+<span class="cs">- **身份：** [你的職業，例如：獨立開發者、前端工程師]</span>
+<span class="cs">- **主要技術棧：** [例如：Next.js, TypeScript, Supabase, Tailwind CSS]</span>
+<span class="cs">- **溝通語言：** 繁體中文（回答請用繁體中文）</span>
+<span class="cs">- **經驗程度：** [例如：剛開始學習、有 2 年經驗]</span>
+
+<span class="cm">---</span>
+
+<span class="cs">## 現在進行中的專案</span>
+
+<span class="cs">### 專案 A：[專案名稱]</span>
+<span class="cs">- **一句話描述：** [例如：一個給美髮沙龍用的會員管理系統]</span>
+<span class="cs">- **技術棧：** [例如：Next.js + Supabase + Shadcn UI + Stripe]</span>
+<span class="cs">- **目前階段：** [例如：MVP 開發中，預計 4 月上線]</span>
+<span class="cs">- **狀態檔案：** projects/project-a/status.md</span>
+
+<span class="cs">### 專案 B：[專案名稱]</span>
+<span class="cs">- **一句話描述：** [描述]</span>
+<span class="cs">- **狀態檔案：** projects/project-b/status.md</span>
+
+<span class="cm">---</span>
+
+<span class="cs">## 規則（每次工作都要遵守）</span>
+
+<span class="cs">### 開始工作前</span>
+<span class="cs">1. 問我要做哪個專案</span>
+<span class="cs">2. 讀取對應的 projects/[名稱]/status.md</span>
+<span class="cs">3. 告訴我現在的狀態，然後等我說要做什麼</span>
+
+<span class="cs">### 工作中</span>
+<span class="cs">- 做了重要決定時，問我要不要記錄到 decisions.md</span>
+<span class="cs">- 遇到 bug 並解決後，問我要不要記錄到 bugs-log.md</span>
+<span class="cs">- 不確定的事情先問，不要自己猜測然後亂改</span>
+
+<span class="cs">### 結束工作前</span>
+<span class="cs">- 更新對應專案的 status.md（完成了什麼、下一步是什麼）</span>
+<span class="cs">- 提醒我有哪些事情還沒決定</span>
+
+<span class="cs">### 永遠遵守</span>
+<span class="cs">- **不刪任何檔案**，除非我明確說「請刪掉 [檔案名稱]」</span>
+<span class="cs">- **回答用繁體中文**</span>
+<span class="cs">- **解釋指令在幹嘛**，不要只給我指令讓我盲目執行</span>
+
+<span class="cm">---</span>
+
+<span class="cs">## Vault 結構說明</span>
+<span class="cs">- projects/ → 每個專案的脈絡和狀態</span>
+<span class="cs">- inbox/ → 未整理的快速記錄，需要時再整理</span>
+<span class="cs">- decisions/ → 跨專案的重大技術決定</span>
+<span class="cs">- resources/ → 學習筆記和技術參考</span>
+<span class="cs">- daily-notes/ → 每日工作日誌</span>
+
+<span class="cm">---</span>
+
+<span class="cs">## 我的偏好</span>
+<span class="cs">- 解釋要詳細，我寧願多讀一點也不要看不懂</span>
+<span class="cs">- 給我選項時說明各自的優缺點</span>
+<span class="cs">- 先說結論，再解釋原因</span></pre>
+    </div>
+
+    <div class="subsection">
+      <h3 class="subsection-title">CLAUDE.md 的幾個關鍵原則</h3>
+
+      <div class="card-grid mt-16">
+        <div class="card">
+          <div class="card-icon">✍️</div>
+          <h3>寫你自己，不是 AI</h3>
+          <p>CLAUDE.md 裡寫的是你的背景和規則，不是 AI 生成的內容。這個檔案是你真實情況的描述，越準確越有用。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔄</div>
+          <h3>定期更新</h3>
+          <p>當你的技術棧改變、新增專案、或規則需要調整時，更新這個檔案。建議每個月回顧一次，確保內容還是準確的。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🎯</div>
+          <h3>規則要具體</h3>
+          <p>「要小心一點」這種規則沒用。「不刪任何檔案，除非我明確確認」這種具體規則才有效。規則越具體，AI 越能確實遵守。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: 情境 -->
+  <section class="section page" id="scenarios">
+    <div class="section-label">06 — 實際情境</div>
+    <h2 class="section-title">8 個你每天都會遇到的情境</h2>
+    <p class="section-desc">每個情境說明問題是什麼、為什麼會發生、以及你要怎麼做（含完整指令）。</p>
+
+    <!-- S1 -->
+    <div class="scenario">
+      <div class="scenario-header">
+        <div class="scenario-num">1</div>
+        <div class="scenario-title">每天開始工作 — 接續上次的狀態</div>
+      </div>
+      <div class="scenario-body">
+        <p><strong>問題：</strong>你昨天做到一半，今天開新 session，完全忘了上次在幹嘛。你需要花時間回憶，或重新跟 Claude 解釋一遍。</p>
+        <p><strong>為什麼沒有 Vault 會這麼痛：</strong>Claude 不記得昨天的對話，每次都是空白開始。如果你也沒有紀錄，就沒有人知道「上次做到哪」。</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">流程</span>
+            <span class="code-desc">每天開始工作的標準程序</span>
+          </div>
+          <pre><span class="cm"># 步驟 1：進入 vault 目錄</span>
+<span class="ck">cd</span> <span class="cp">~/vault</span>
+
+<span class="cm"># 步驟 2：啟動 Claude Code</span>
+<span class="ck">claude</span>
+
+<span class="cm"># 步驟 3：在 Claude Code 裡說：</span>
+<span class="cs">"請讀取 projects/my-project/status.md，</span>
+<span class="cs">告訴我現在的狀態和下一步是什麼，</span>
+<span class="cs">然後等我說要從哪裡開始。"</span></pre>
+        </div>
+
+        <p>Claude 會回答類似：「你的專案目前完成了 A 和 B，下一步是 C。根據 status.md，上次停在 D 這個問題還沒解決。你要先處理哪個？」你立刻進入狀況，完全不需要回憶。</p>
+      </div>
+    </div>
+
+    <!-- S2 -->
+    <div class="scenario">
+      <div class="scenario-header">
+        <div class="scenario-num">2</div>
+        <div class="scenario-title">做了技術決定 — 記錄下來，未來可以查</div>
+      </div>
+      <div class="scenario-body">
+        <p><strong>問題：</strong>你和 Claude 討論了一個小時，選定了某個方案。但這個決定的理由都在那次對話裡，之後 session 結束，理由就消失了。</p>
+        <p><strong>情境範例：</strong>你在考慮要用哪個第三方服務，討論了 A 方案 vs B 方案 vs C 方案，最終選了 A。三個月後有人問你為什麼選 A，你完全不記得了。</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">指令</span>
+            <span class="code-desc">決策結束後立刻執行</span>
+          </div>
+          <pre><span class="cs">"請把我們剛才關於 OTP 服務選擇的討論，</span>
+<span class="cs">整理成一篇決策紀錄，存到 projects/my-project/decisions.md。</span>
+<span class="cs">格式包含：今天的日期、我們的決定是什麼、</span>
+<span class="cs">評估過的選項、選擇這個的理由、</span>
+<span class="cs">以及在什麼條件下我們應該重新評估這個決定。"</span></pre>
+        </div>
+
+        <p>Claude 會把整個討論過程濃縮成結構化的決策紀錄。以後要查，一秒找到。</p>
+
+        <div class="box orange">
+          <span class="box-icon">💡</span>
+          <div class="box-content">
+            <p><strong>進階用法：</strong>三個月後你想重新評估某個決定，叫 Claude：「讀取 decisions.md 裡的 [決定名稱]，告訴我當時的評估條件，幫我看看現在這些條件有沒有改變。」</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- S3 -->
+    <div class="scenario">
+      <div class="scenario-header">
+        <div class="scenario-num">3</div>
+        <div class="scenario-title">靈感突然來 — 快速記錄，不破壞工作流</div>
+      </div>
+      <div class="scenario-body">
+        <p><strong>問題：</strong>你在做 A 功能的時候，突然想到 B 功能應該怎麼做，或者有個很好的 UI 想法。你想記下來，但打開 Obsidian 整理又太麻煩，所以最後就忘了。</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">bash</span>
+            <span class="code-desc">最快的記錄方式（不用打開 Obsidian）</span>
+          </div>
+          <pre><span class="cm"># 直接在終端機把想法加到 inbox</span>
+<span class="cm"># echo 輸出文字，>> 代表「附加到檔案末尾」（不是覆蓋）</span>
+<span class="cm"># 如果檔案不存在，>> 會自動建立它</span>
+<span class="ck">echo</span> <span class="cs">"登入頁考慮加 Google OAuth，減少手機 OTP 的摩擦"</span> >> <span class="cp">~/vault/inbox/quick-capture.md</span>
+
+<span class="cm"># 如果想加上日期標記</span>
+<span class="ck">echo</span> <span class="cs">"$(date +%Y-%m-%d) 登入頁考慮加 Google OAuth"</span> >> <span class="cp">~/vault/inbox/quick-capture.md</span>
+
+<span class="cm"># 確認有沒有存進去</span>
+<span class="ck">cat</span> <span class="cp">~/vault/inbox/quick-capture.md</span></pre>
+        </div>
+
+        <p>等到你有時間的時候，叫 Claude 整理 inbox：</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">指令</span>
+            <span class="code-desc">整理 inbox 的指令</span>
+          </div>
+          <pre><span class="cs">"讀取 inbox/quick-capture.md，</span>
+<span class="cs">把裡面的內容分類整理到對應的位置：</span>
+<span class="cs">- 跟 my-project 有關的，加到 projects/my-project/ 的對應檔案</span>
+<span class="cs">- 技術研究的想法，加到 resources/</span>
+<span class="cs">- 跨專案的決定，加到 decisions/</span>
+<span class="cs">告訴我你把什麼搬到哪裡了，然後清空 quick-capture.md。"</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- S4 -->
+    <div class="scenario">
+      <div class="scenario-header">
+        <div class="scenario-num">4</div>
+        <div class="scenario-title">踩到 Bug — 記錄解法，避免下次再踩</div>
+      </div>
+      <div class="scenario-body">
+        <p><strong>問題：</strong>你花了兩小時解決一個 bug，解掉了，繼續往前。兩個月後，同樣的 bug 出現在另一個地方，你又花了兩小時。</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">指令</span>
+            <span class="code-desc">解完 bug 立刻執行</span>
+          </div>
+          <pre><span class="cs">"把剛才解決的這個 bug 記錄到 projects/my-project/bugs-log.md。</span>
+<span class="cs">格式：</span>
+<span class="cs">- 日期</span>
+<span class="cs">- 症狀（看到什麼錯誤訊息、什麼行為）</span>
+<span class="cs">- 根本原因（為什麼會發生）</span>
+<span class="cs">- 解法（完整的修復步驟或代碼）</span>
+<span class="cs">- 之後怎麼避免（預防措施）"</span></pre>
+        </div>
+
+        <p>下次遇到類似問題，你可以叫 Claude：</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">指令</span>
+            <span class="code-desc">查詢歷史 bug 記錄</span>
+          </div>
+          <pre><span class="cs">"讀取 projects/my-project/bugs-log.md，</span>
+<span class="cs">看看有沒有跟我現在遇到的問題（[描述症狀]）類似的紀錄，</span>
+<span class="cs">如果有，告訴我之前的解法。"</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- S5 -->
+    <div class="scenario">
+      <div class="scenario-header">
+        <div class="scenario-num">5</div>
+        <div class="scenario-title">多專案切換 — 不把不同專案的脈絡混淆</div>
+      </div>
+      <div class="scenario-body">
+        <p><strong>問題：</strong>你同時在做三個專案。做完 A 專案切換到 B 專案時，Claude 有時候會把 A 的技術細節帶進 B 的討論裡，造成混亂。</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">指令</span>
+            <span class="code-desc">切換專案的標準流程</span>
+          </div>
+          <pre><span class="cs">"我們現在切換到 project-b。</span>
+<span class="cs">請做以下幾件事：</span>
+<span class="cs">1. 把剛才 project-a 的所有細節清出你的工作記憶</span>
+<span class="cs">2. 讀取 projects/project-b/ 資料夾裡所有的 .md 檔案</span>
+<span class="cs">3. 告訴我這個專案現在的狀態和技術棧</span>
+<span class="cs">4. 等我說要做什麼"</span></pre>
+        </div>
+
+        <div class="box info">
+          <span class="box-icon">ℹ️</span>
+          <div class="box-content">
+            <p><strong>「清出工作記憶」</strong>這個說法很重要。明確告訴 Claude 要切換脈絡，它才不會把上一個專案的資訊混進來。這比開新 session 更快，也不需要重新建立基本背景。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- S6 -->
+    <div class="scenario">
+      <div class="scenario-header">
+        <div class="scenario-num">6</div>
+        <div class="scenario-title">每天結束工作 — 更新進度，為明天做準備</div>
+      </div>
+      <div class="scenario-body">
+        <p><strong>問題：</strong>今天做了很多事，但沒有記錄。明天開始工作又要重新想「昨天做到哪了」。</p>
+        <p><strong>解法：</strong>每次工作結束前，固定執行這個指令（養成習慣，只要 30 秒）：</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">指令</span>
+            <span class="code-desc">每天工作結束前的固定指令</span>
+          </div>
+          <pre><span class="cs">"工作結束了，請幫我更新 projects/my-project/status.md：</span>
+<span class="cs">1. 把今天完成的功能/任務移到「已完成」清單</span>
+<span class="cs">2. 更新「進行中」的項目</span>
+<span class="cs">3. 把「下一步」更新成明天應該優先做的事</span>
+<span class="cs">4. 記錄今天遇到但還沒解決的問題</span>
+<span class="cs">5. 更新最後修改日期</span>
+<span class="cs">完成後給我看更新後的內容，讓我確認。"</span></pre>
+        </div>
+
+        <p>這 30 秒的習慣，讓明天的你直接進入狀況，不需要回憶。</p>
+      </div>
+    </div>
+
+    <!-- S7 -->
+    <div class="scenario">
+      <div class="scenario-header">
+        <div class="scenario-num">7</div>
+        <div class="scenario-title">查找過去的資訊 — 不靠記憶，靠搜尋</div>
+      </div>
+      <div class="scenario-body">
+        <p><strong>問題：</strong>「我記得我之前研究過這個問題，但忘了結論是什麼」——這種情況太常見了。</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">bash</span>
+            <span class="code-desc">在 Vault 裡搜尋關鍵字（終端機指令）</span>
+          </div>
+          <pre><span class="cm"># grep = 搜尋文字，-r = 包含子資料夾，--include = 只搜 .md 檔</span>
+<span class="cm"># -l = 只顯示有找到的檔案名稱</span>
+<span class="cm"># -i = 不分大小寫</span>
+
+<span class="cm"># 找哪些檔案裡有提到某個關鍵字，例如 "API"</span>
+<span class="ck">grep</span> -r -l -i <span class="cs">"API"</span> <span class="cp">~/vault</span> --include="*.md"
+
+<span class="cm"># 找所有提到該關鍵字的內容（含檔案名稱和行數）</span>
+<span class="ck">grep</span> -r -n -i <span class="cs">"API"</span> <span class="cp">~/vault</span> --include="*.md"
+
+<span class="cm"># 在 Obsidian 裡用圖形介面搜尋</span>
+<span class="cm"># 按 Cmd+Shift+F（Mac）或 Ctrl+Shift+F（Windows）</span></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">指令</span>
+            <span class="code-desc">叫 Claude 去找</span>
+          </div>
+          <pre><span class="cs">"請在整個 vault 裡搜尋跟 'OTP' 相關的所有筆記，</span>
+<span class="cs">告訴我在哪些檔案裡有提到，以及各自說了什麼。"</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- S8 -->
+    <div class="scenario">
+      <div class="scenario-header">
+        <div class="scenario-num">8</div>
+        <div class="scenario-title">知識沉澱 — 把學到的技術記下來，以後直接用</div>
+      </div>
+      <div class="scenario-body">
+        <p><strong>問題：</strong>你研究了一個技術，搞懂了，繼續往前。下次遇到類似問題，又要重新研究一遍。</p>
+        <p><strong>解法：</strong>每次解決一個技術問題後，把學到的東西存進 resources/。</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">指令</span>
+            <span class="code-desc">把研究結果存成知識筆記</span>
+          </div>
+          <pre><span class="cs">"把我們剛才解決 Supabase RLS 問題的過程，</span>
+<span class="cs">整理成一篇技術筆記存到 resources/supabase-tips.md。</span>
+<span class="cs">格式：</span>
+<span class="cs">- 問題描述（什麼情境下會遇到）</span>
+<span class="cs">- 原因解釋（背後的機制）</span>
+<span class="cs">- 解法步驟（可以直接複製的代碼）</span>
+<span class="cs">- 相關參考資源</span>
+<span class="cs">讓我下次遇到類似問題，讀這篇就能解決，不用再查文件。"</span></pre>
+        </div>
+
+        <p>一個月後，你的 resources/ 資料夾就會有一個「你自己的技術手冊」，全部都是你真正用過、驗證過的解法。</p>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- SECTION 7: 指令總覽 -->
+  <section class="section page" id="commands">
+    <div class="section-label">07 — 指令總覽</div>
+    <h2 class="section-title">所有你需要的指令，逐一解釋</h2>
+    <p class="section-desc">這裡把所有指令集中在一起，每個都說明在幹嘛。可以當作備忘清單使用。</p>
+
+    <div class="subsection">
+      <h3 class="subsection-title">終端機指令（bash）</h3>
+      <p>這些是你在終端機輸入的指令，用來建立結構、啟動 Claude、搜尋等。</p>
+    </div>
+
+    <div class="cmd-explain">
+
+      <div class="cmd-explain-item">
+        <div class="cmd-explain-top">
+          <code class="cmd-explain-code">cd ~/vault</code>
+          <span class="cmd-explain-desc">切換工作目錄到你的 Vault</span>
+        </div>
+        <div class="cmd-explain-detail">
+          <code>cd</code> = change directory，切換資料夾。<code>~</code> 是你的家目錄（/Users/你的名字/）。這個指令讓你「進入」vault 資料夾，之後執行的所有指令都以這裡為基準。一定要先執行這個，再啟動 Claude Code。
+        </div>
+      </div>
+
+      <div class="cmd-explain-item">
+        <div class="cmd-explain-top">
+          <code class="cmd-explain-code">claude</code>
+          <span class="cmd-explain-desc">啟動 Claude Code</span>
+        </div>
+        <div class="cmd-explain-detail">
+          在你 <code>cd ~/vault</code> 之後再執行這個。Claude Code 會以當前資料夾（vault）作為工作目錄啟動，就能讀取所有的 .md 筆記。
+        </div>
+      </div>
+
+      <div class="cmd-explain-item">
+        <div class="cmd-explain-top">
+          <code class="cmd-explain-code">mkdir -p ~/vault/projects/new-project</code>
+          <span class="cmd-explain-desc">建立新專案資料夾</span>
+        </div>
+        <div class="cmd-explain-detail">
+          <code>mkdir</code> = make directory，建立資料夾。<code>-p</code> = 如果中間的資料夾不存在也一起建立，且不會因為已存在而報錯。把 <code>new-project</code> 換成你的專案名稱。
+        </div>
+      </div>
+
+      <div class="cmd-explain-item">
+        <div class="cmd-explain-top">
+          <code class="cmd-explain-code">echo "文字" >> ~/vault/inbox/quick-capture.md</code>
+          <span class="cmd-explain-desc">快速把文字附加到 inbox 檔案末尾</span>
+        </div>
+        <div class="cmd-explain-detail">
+          <code>echo</code> 把引號裡的文字輸出。<code>>></code> 代表「附加到檔案末尾」（不會覆蓋原有內容，如果用 <code>></code> 就會覆蓋，注意差別）。如果 quick-capture.md 不存在，<code>>></code> 會自動建立它。
+        </div>
+      </div>
+
+      <div class="cmd-explain-item">
+        <div class="cmd-explain-top">
+          <code class="cmd-explain-code">cat ~/vault/inbox/quick-capture.md</code>
+          <span class="cmd-explain-desc">顯示 inbox 裡的所有內容</span>
+        </div>
+        <div class="cmd-explain-detail">
+          <code>cat</code> = concatenate，顯示檔案內容到終端機。用來確認你的 inbox 裡有什麼，或確認剛才的 echo 有沒有成功存進去。
+        </div>
+      </div>
+
+      <div class="cmd-explain-item">
+        <div class="cmd-explain-top">
+          <code class="cmd-explain-code">grep -r -l "關鍵字" ~/vault --include="*.md"</code>
+          <span class="cmd-explain-desc">搜尋所有筆記裡包含某個關鍵字的檔案</span>
+        </div>
+        <div class="cmd-explain-detail">
+          <code>grep</code> = 搜尋文字內容。<code>-r</code> = recursive，包含所有子資料夾。<code>-l</code> = 只列出檔案名稱（不顯示每一行）。<code>--include="*.md"</code> = 只搜尋 .md 檔案。把「關鍵字」換成你要找的詞。
+        </div>
+      </div>
+
+      <div class="cmd-explain-item">
+        <div class="cmd-explain-top">
+          <code class="cmd-explain-code">find ~/vault -name "*.md" | head -30</code>
+          <span class="cmd-explain-desc">列出 Vault 裡的前 30 個 .md 檔案</span>
+        </div>
+        <div class="cmd-explain-detail">
+          <code>find</code> 找出所有符合條件的檔案。<code>-name "*.md"</code> = 名稱以 .md 結尾的檔案。<code>| head -30</code> = 只顯示前 30 個（避免輸出太多）。用來快速查看 vault 的結構。
+        </div>
+      </div>
+
+    </div>
+
+    <div class="subsection mt-32">
+      <h3 class="subsection-title">給 Claude 的指令範本</h3>
+      <p>這些是你在 Claude Code 裡輸入的自然語言指令。</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>情境</th><th>指令範本</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>開始工作</strong></td>
+            <td><code>"讀取 projects/my-project/status.md，告訴我現在的狀態，等我說要做什麼"</code></td>
+          </tr>
+          <tr>
+            <td><strong>切換專案</strong></td>
+            <td><code>"切換到 project-b，清除 project-a 的記憶，讀取 project-b 所有筆記，告訴我它的狀態"</code></td>
+          </tr>
+          <tr>
+            <td><strong>記錄決定</strong></td>
+            <td><code>"把我們剛才的決定記錄到 decisions.md，包含日期、決定、評估選項、理由、重新評估條件"</code></td>
+          </tr>
+          <tr>
+            <td><strong>記錄 bug</strong></td>
+            <td><code>"把剛才解決的 bug 記錄到 bugs-log.md，包含症狀、原因、解法、預防措施"</code></td>
+          </tr>
+          <tr>
+            <td><strong>整理 inbox</strong></td>
+            <td><code>"讀取 inbox/quick-capture.md，把內容整理到對應的位置，告訴我你搬了什麼"</code></td>
+          </tr>
+          <tr>
+            <td><strong>結束工作</strong></td>
+            <td><code>"更新 status.md：完成的、進行中的、明天的優先項目、今天未解決的問題"</code></td>
+          </tr>
+          <tr>
+            <td><strong>查詢歷史</strong></td>
+            <td><code>"在整個 vault 搜尋跟 [關鍵字] 相關的筆記，告訴我在哪些檔案，各說了什麼"</code></td>
+          </tr>
+          <tr>
+            <td><strong>存技術筆記</strong></td>
+            <td><code>"把剛才學到的 [技術] 整理成筆記存到 resources/，讓我下次直接用"</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SECTION 8: 進階 -->
+  <section class="section page" id="advanced">
+    <div class="section-label">08 — 進階技巧</div>
+    <h2 class="section-title">讓工作流更強大的進階設定</h2>
+    <p class="section-desc">這些不是必須的，但設定好之後能大幅提升效率。</p>
+
+    <div class="subsection">
+      <h3 class="subsection-title">技巧一：建立 Shell Alias，一個字啟動</h3>
+      <p>每次都要輸入 <code>cd ~/vault && claude</code> 有點麻煩。設定一個 alias，之後只要打兩個字。</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">bash</span>
+          <span class="code-desc">設定 alias（只需要做一次）</span>
+        </div>
+        <pre><span class="cm"># 打開你的 shell 設定檔</span>
+<span class="cm"># 如果你用 zsh（macOS 預設）：</span>
+<span class="ck">nano</span> <span class="cp">~/.zshrc</span>
+
+<span class="cm"># 如果你用 bash：</span>
+<span class="ck">nano</span> <span class="cp">~/.bashrc</span>
+
+<span class="cm"># 在檔案最後面加入這幾行：</span>
+<span class="cs">alias vault="cd ~/vault && claude"</span>
+<span class="cs">alias note="echo \"$(date +%Y-%m-%d) $*\" >> ~/vault/inbox/quick-capture.md"</span>
+
+<span class="cm"># 儲存並重新載入（Ctrl+X, Y, Enter 存檔後）</span>
+<span class="ck">source</span> <span class="cp">~/.zshrc</span>
+<span class="cm"># 或</span>
+<span class="ck">source</span> <span class="cp">~/.bashrc</span></pre>
+      </div>
+
+      <p>設定好之後：</p>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">bash</span>
+          <span class="code-desc">使用 alias</span>
+        </div>
+        <pre><span class="cm"># 輸入 vault 直接啟動</span>
+<span class="ck">vault</span>
+
+<span class="cm"># 輸入 note 快速記錄</span>
+<span class="ck">note</span> <span class="cs">"登入頁考慮加 Google OAuth"</span>
+<span class="cm"># 會自動加上日期：2026-03-26 登入頁考慮加 Google OAuth</span></pre>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3 class="subsection-title">技巧二：用 iCloud 免費跨裝置同步</h3>
+      <p>如果你有 iPhone 或 iPad，可以讓手機也能看到 Vault 的筆記。不需要付費的 Obsidian Sync。</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">bash</span>
+          <span class="code-desc">把 Vault 移到 iCloud（macOS）</span>
+        </div>
+        <pre><span class="cm"># iCloud 的 Obsidian 資料夾路徑</span>
+<span class="cv">ICLOUD_PATH</span>=<span class="cs">"~/Library/Mobile Documents/iCloud~md~obsidian/Documents"</span>
+
+<span class="cm"># 建立 iCloud 資料夾（如果不存在）</span>
+<span class="ck">mkdir</span> -p <span class="cs">"$ICLOUD_PATH"</span>
+
+<span class="cm"># 把現有的 vault 移過去</span>
+<span class="ck">mv</span> <span class="cp">~/vault</span> <span class="cs">"$ICLOUD_PATH/vault"</span>
+
+<span class="cm"># 建立 symlink，讓你還是可以用 ~/vault 這個路徑</span>
+<span class="cm"># ln -s 原始路徑 連結名稱</span>
+<span class="ck">ln</span> -s <span class="cs">"$ICLOUD_PATH/vault"</span> <span class="cp">~/vault</span>
+
+<span class="cm"># 確認 symlink 建立成功</span>
+<span class="ck">ls</span> -la ~ | <span class="ck">grep</span> vault</pre>
+      </div>
+
+      <div class="box info">
+        <span class="box-icon">ℹ️</span>
+        <div class="box-content">
+          <p>Symlink 的意思是「捷徑」。你之後還是可以用 <code>~/vault</code> 這個路徑，但實際上資料存在 iCloud 資料夾裡，會自動同步到你的 iPhone。在手機上安裝 Obsidian app，選擇 iCloud 的 vault，就能讀寫。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3 class="subsection-title">技巧三：建立筆記範本，保持格式一致</h3>
+      <p>每次記錄決定、bug、技術筆記，都要想「格式要怎麼寫」很煩。先建好範本，之後叫 Claude 照範本填。</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">bash</span>
+          <span class="code-desc">建立範本資料夾和範本檔案</span>
+        </div>
+        <pre><span class="ck">mkdir</span> -p <span class="cp">~/vault/resources/templates</span>
+
+<span class="cm"># 建立決策紀錄範本</span>
+<span class="ck">cat</span> > <span class="cp">~/vault/resources/templates/decision.md</span> << <span class="cs">'EOF'</span>
+<span class="cs">## YYYY-MM-DD [決定名稱]</span>
+
+<span class="cs">**最終決定：** </span>
+
+<span class="cs">**背景：** （為什麼需要做這個決定）</span>
+
+<span class="cs">**評估的選項：**</span>
+<span class="cs">| 選項 | 優點 | 缺點 |</span>
+<span class="cs">|------|------|------|</span>
+<span class="cs">| 選項A |  |  |</span>
+<span class="cs">| 選項B |  |  |</span>
+
+<span class="cs">**選擇的理由：** </span>
+
+<span class="cs">**風險與緩解方式：** </span>
+
+<span class="cs">**重新評估條件：** （什麼情況下應該重新考慮這個決定）</span>
+EOF</span>
+
+<span class="cm"># 建立 bug 紀錄範本</span>
+<span class="ck">cat</span> > <span class="cp">~/vault/resources/templates/bug-report.md</span> << <span class="cs">'EOF'</span>
+<span class="cs">## YYYY-MM-DD [Bug 標題]</span>
+
+<span class="cs">**症狀：** （看到什麼錯誤、什麼行為）</span>
+
+<span class="cs">**重現步驟：**</span>
+<span class="cs">1. </span>
+
+<span class="cs">**根本原因：** （為什麼會發生）</span>
+
+<span class="cs">**解法：**</span>
+<span class="cs">```</span>
+<span class="cs">（放修復的代碼）</span>
+<span class="cs">```</span>
+
+<span class="cs">**預防措施：** （下次怎麼避免）</span>
+EOF</span></pre>
+      </div>
+
+      <p>之後叫 Claude：</p>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">指令</span>
+        </div>
+        <pre><span class="cs">"讀取 resources/templates/decision.md 的格式，</span>
+<span class="cs">然後用這個格式把我們剛才的討論整理成決策紀錄，</span>
+<span class="cs">存到 projects/my-project/decisions.md。"</span></pre>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3 class="subsection-title">技巧四：用 Daily Note 追蹤每日工作</h3>
+      <p>如果你想要更細粒度的紀錄，可以用每日筆記，記錄當天做了什麼、遇到什麼問題。</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">bash</span>
+          <span class="code-desc">建立今日工作日誌</span>
+        </div>
+        <pre><span class="cm"># 自動建立今天日期的筆記</span>
+<span class="ck">cat</span> > <span class="cp">~/vault/daily-notes/$(date +%Y-%m-%d).md</span> << <span class="cs">'EOF'</span>
+<span class="cs"># 工作日誌</span>
+
+<span class="cs">## 今天的目標</span>
+<span class="cs">- </span>
+
+<span class="cs">## 完成的事</span>
+<span class="cs">- </span>
+
+<span class="cs">## 遇到的問題</span>
+<span class="cs">- </span>
+
+<span class="cs">## 明天要做的</span>
+<span class="cs">- </span>
+
+<span class="cs">## 隨手記</span>
+EOF</span></pre>
+      </div>
+    </div>
+
+    <div class="concept-box mt-32">
+      <div class="label">最重要的原則</div>
+      <p>不要追求完美的結構。<strong>先開始記，之後再優化。</strong>一個不完美但有在用的 Vault，遠比一個完美但沒在用的 Vault 有價值。從最小可行的結構開始：<code>CLAUDE.md</code> + 一個 <code>projects/</code> 資料夾 + <code>inbox/</code>，這樣就夠了。其他的等你真的需要再加。</p>
+    </div>
+
+  </section>
+
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <p>Obsidian × Claude Code 完整使用指南 v2.0</p>
+  <p>適合初階開發者 · 免費工具 · <span>讓 AI 真正記住你在做什麼</span></p>
+</footer>
+
+<script>
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const target = this.dataset.target;
+
+      // switch pages
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(target).classList.add('active');
+
+      // switch nav highlight
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      this.classList.add('active');
+
+      // scroll to top instantly
+      window.scrollTo(0, 0);
+    });
+  });
+</script>
+</body>
+</html>
